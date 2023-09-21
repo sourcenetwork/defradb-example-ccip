@@ -1,7 +1,7 @@
-import { ethers } from "hardhat";
+import hre from "hardhat";
+import { ethers } from "ethers";
 
-// DefraDB api endpoint
-const url = `https://127.0.0.1:9181/api/v0`
+const url = `http://127.0.0.1:9181/api/v0`
 
 const schema = `type Todo {
   description: String
@@ -12,8 +12,18 @@ async function main() {
   const res = await fetch(url+"/schema", { method: 'POST', body: schema });
   if (res.status != 200) throw new Error("failed to create schema");
 
-  const contract = await ethers.deployContract("GraphQL", [url+"/graphql"]);
+  const contract = await hre.ethers.deployContract("GraphQL", [url+"/graphql"]);
   await contract.waitForDeployment();
+
+  const contractArtifact = await hre.artifacts.readArtifact("GraphQL");
+  const contractAddress = await contract.getAddress();
+
+  const provider = new ethers.BrowserProvider(hre.network.provider);
+  const client = new ethers.Contract(contractAddress, contractArtifact.abi, provider);
+
+  ////////////////////////
+  /// Mutation Example ///
+  ////////////////////////
 
   const mutationData = JSON.stringify({ 
     description: 'buy milk', 
@@ -28,9 +38,13 @@ async function main() {
     }`
   });
 
-  // IMPORTANT: you must enabled CCIP reads when using ethers
-  const mutationResult = await contract.query(mutationRequest, { enableCcipRead: true });
+  // IMPORTANT: you must enable CCIP reads in ethers
+  const mutationResult = await client.query(mutationRequest, { enableCcipRead: true });
   console.log('mutationResult:', mutationResult);
+
+  //////////////////////
+  /// Query Example ///
+  /////////////////////
 
   const queryRequest = JSON.stringify({
     query: `query {
@@ -42,8 +56,8 @@ async function main() {
     }`
   });
 
-  // IMPORTANT: you must enabled CCIP reads when using ethers
-  const queryResult = await contract.query(queryRequest, { enableCcipRead: true });
+  // IMPORTANT: you must enable CCIP reads in ethers
+  const queryResult = await client.query(queryRequest, { enableCcipRead: true });
   console.log('queryResult:', queryResult);
 }
 
