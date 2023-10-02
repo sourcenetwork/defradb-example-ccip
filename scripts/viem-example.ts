@@ -13,7 +13,7 @@ async function main() {
   const res = await fetch(url+"/schema", { method: 'POST', body: schema });
   if (res.status != 200) throw new Error("failed to create schema");
 
-  const contract = await hre.ethers.deployContract("GraphQL", [url+"/graphql"]);
+  const contract = await hre.ethers.deployContract("GraphQL", [url+"/ccip"]);
   await contract.waitForDeployment();
 
   const contractArtifact = await hre.artifacts.readArtifact("GraphQL");
@@ -28,14 +28,9 @@ async function main() {
   /// Mutation Example ///
   ////////////////////////
 
-  const mutationData = JSON.stringify({ 
-    description: 'buy milk', 
-    completed: false,
-  });
-
   const mutationRequest = JSON.stringify({
     query: `mutation {
-      create_Todo(data: ${mutationData}) {
+      create_Todo(data: "{\\"description\\":\\"buy milk\\",\\"completed\\":false}") {
         _key
       }
     }`
